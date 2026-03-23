@@ -1,5 +1,40 @@
 # @langchain/langgraph
 
+## 1.2.5
+
+### Patch Changes
+
+- [#2213](https://github.com/langchain-ai/langgraphjs/pull/2213) [`a09932a`](https://github.com/langchain-ai/langgraphjs/commit/a09932a203062d52e98e6dc5fd80ab572b123700) Thanks [@hntrl](https://github.com/hntrl)! - fix(core): prevent AbortSignal listener leak in stream() and streamEvents()
+
+  `Pregel.stream()` and `streamEvents()` called `combineAbortSignals()` but discarded the `dispose` function, leaking one abort listener on the caller's signal per invocation. Over many invocations this caused unbounded memory growth as each leaked listener retained references to its associated graph execution state.
+
+  - Use `AbortSignal.any()` on Node 20+ which handles listener lifecycle automatically via GC
+  - Fall back to manual listener management on Node 18, with proper `dispose()` called when the stream completes or is cancelled
+
+- [#2210](https://github.com/langchain-ai/langgraphjs/pull/2210) [`4d2e948`](https://github.com/langchain-ai/langgraphjs/commit/4d2e9483208e105b7c45ab1cbc8ac8d540fbb23d) Thanks [@jackjin1997](https://github.com/jackjin1997)! - Fix `AnyValue.update()` returning `false` instead of `true` when values are received, aligning with all other channel implementations.
+
+- Updated dependencies [[`414a7ad`](https://github.com/langchain-ai/langgraphjs/commit/414a7adf908ba4f7ffef4985df3a95f14202591b)]:
+  - @langchain/langgraph-sdk@1.8.0
+
+## 1.2.4
+
+### Patch Changes
+
+- [`fe4dd5b`](https://github.com/langchain-ai/langgraphjs/commit/fe4dd5b85d285f78b6d499b1f1013927931ea634) Thanks [@christian-bromann](https://github.com/christian-bromann)! - fix(sdk): fetch subagent history
+
+- Updated dependencies [[`fe4dd5b`](https://github.com/langchain-ai/langgraphjs/commit/fe4dd5b85d285f78b6d499b1f1013927931ea634), [`fe4dd5b`](https://github.com/langchain-ai/langgraphjs/commit/fe4dd5b85d285f78b6d499b1f1013927931ea634), [`fe4dd5b`](https://github.com/langchain-ai/langgraphjs/commit/fe4dd5b85d285f78b6d499b1f1013927931ea634)]:
+  - @langchain/langgraph-sdk@1.7.5
+
+## 1.2.3
+
+### Patch Changes
+
+- [#2176](https://github.com/langchain-ai/langgraphjs/pull/2176) [`ad48dee`](https://github.com/langchain-ai/langgraphjs/commit/ad48dee9dcaf29c718c9f6b1c188756c14e85a0f) Thanks [@pawel-twardziak](https://github.com/pawel-twardziak)! - fix(state): merge jsonSchemaExtra in getInputJsonSchema()
+
+- Updated dependencies [[`8fec72a`](https://github.com/langchain-ai/langgraphjs/commit/8fec72ae98b117b79048403d0f7ad75d653c090b), [`a9ff2ef`](https://github.com/langchain-ai/langgraphjs/commit/a9ff2efdf0a2b6ff0301eedfff541e125c1e6300), [`a24bb55`](https://github.com/langchain-ai/langgraphjs/commit/a24bb550fb81271c505b9cab0295d8e599aaeb79), [`b80076c`](https://github.com/langchain-ai/langgraphjs/commit/b80076c5a7fc1b6985abc1fd9c367438ba6ca968), [`b6cfe55`](https://github.com/langchain-ai/langgraphjs/commit/b6cfe555bfb498fe24fa85847f0fe5d1194dfa39)]:
+  - @langchain/langgraph-sdk@1.7.3
+  - @langchain/langgraph-checkpoint@1.0.1
+
 ## 1.2.2
 
 ### Patch Changes
