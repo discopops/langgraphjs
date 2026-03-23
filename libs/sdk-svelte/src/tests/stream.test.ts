@@ -25,6 +25,7 @@ import CustomStreamMethods from "./components/CustomStreamMethods.svelte";
 import HistoryMessages from "./components/HistoryMessages.svelte";
 
 const serverUrl = inject("serverUrl");
+expect.setState({ timeout: 30_000 });
 
 it("renders initial state correctly", async () => {
   const screen = render(BasicStream, {

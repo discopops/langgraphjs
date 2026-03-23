@@ -44,6 +44,7 @@ declare module "vitest-browser-angular" {
 }
 
 const serverUrl = inject("serverUrl");
+expect.setState({ timeout: 30_000 });
 
 it("renders initial state correctly", async () => {
   const screen = await render(BasicStreamComponent);

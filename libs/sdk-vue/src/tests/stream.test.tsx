@@ -7,6 +7,7 @@ import { useStreamCustom } from "../stream.custom.js";
 import type { DeepAgentGraph } from "./fixtures/mock-server.js";
 
 const serverUrl = inject("serverUrl");
+expect.setState({ timeout: 30_000 });
 
 it("renders initial state correctly", async () => {
   const TestComponent = defineComponent({

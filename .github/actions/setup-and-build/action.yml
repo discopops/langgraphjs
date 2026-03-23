@@ -21,9 +21,6 @@ runs:
       with:
         node-version: ${{ inputs.node-version }}
         cache: "pnpm"
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile
-      shell: bash
     - name: Download build artifacts
       if: inputs.artifact-name != ''
       uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v4
@@ -32,6 +29,9 @@ runs:
     - name: Extract build artifacts
       if: inputs.artifact-name != ''
       run: tar -xzf build-artifacts.tar.gz
+      shell: bash
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
       shell: bash
     - name: Build dependencies
       if: inputs.artifact-name == ''
