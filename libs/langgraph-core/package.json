@@ -1,6 +1,6 @@
 {
   "name": "@langchain/langgraph",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "description": "LangGraph",
   "type": "module",
   "engines": {
@@ -91,6 +91,7 @@
   },
   "exports": {
     ".": {
+      "browser": "./dist/web.js",
       "input": "./src/index.ts",
       "typedoc": "./src/index.ts",
       "import": {
