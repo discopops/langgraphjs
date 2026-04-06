@@ -81,7 +81,7 @@ import { mapInput, readChannels } from "./io.js";
 import { PregelLoop } from "./loop.js";
 import { StreamMessagesHandler } from "./messages.js";
 import { PregelNode } from "./read.js";
-import { LangGraphRunnableConfig } from "./runnable_types.js";
+import { LangGraphRunnableConfig, type ServerInfo } from "./runnable_types.js";
 import { PregelRunner } from "./runner.js";
 import {
   IterableReadableStreamWithAbortSignal,
@@ -295,7 +295,7 @@ export type { PregelInputType, PregelOptions, PregelOutputType };
 class PartialRunnable<
   RunInput,
   RunOutput,
-  CallOptions extends RunnableConfig
+  CallOptions extends RunnableConfig,
 > extends Runnable<RunInput, RunOutput, CallOptions> {
   lc_namespace = ["langgraph", "pregel"];
 
@@ -382,19 +382,19 @@ class PartialRunnable<
  * @typeParam OutputType - Type of output values produced by the graph
  */
 export class Pregel<
-    Nodes extends StrRecord<string, PregelNode>,
-    Channels extends StrRecord<string, BaseChannel>,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ContextType extends Record<string, any> = StrRecord<string, any>,
-    InputType = PregelInputType,
-    OutputType = PregelOutputType,
-    StreamUpdatesType = InputType,
-    StreamValuesType = OutputType,
-    NodeReturnType = unknown,
-    CommandType = CommandInstance,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    StreamCustom = any
-  >
+  Nodes extends StrRecord<string, PregelNode>,
+  Channels extends StrRecord<string, BaseChannel>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ContextType extends Record<string, any> = StrRecord<string, any>,
+  InputType = PregelInputType,
+  OutputType = PregelOutputType,
+  StreamUpdatesType = InputType,
+  StreamValuesType = OutputType,
+  NodeReturnType = unknown,
+  CommandType = CommandInstance,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  StreamCustom = any,
+>
   extends PartialRunnable<
     InputType | CommandType | null,
     OutputType,
@@ -1724,7 +1724,7 @@ export class Pregel<
     BaseStore | undefined, // store
     boolean, // stream mode single
     BaseCache | undefined, // node cache
-    Durability // durability
+    Durability, // durability
   ] {
     const {
       debug,
@@ -1843,7 +1843,7 @@ export class Pregel<
   override async stream<
     TStreamMode extends StreamMode | StreamMode[] | undefined,
     TSubgraphs extends boolean,
-    TEncoding extends "text/event-stream" | undefined
+    TEncoding extends "text/event-stream" | undefined,
   >(
     input: InputType | CommandType | null,
     options?: Partial<
@@ -1977,7 +1977,9 @@ export class Pregel<
   ): AsyncGenerator<PregelOutputType> {
     // Skip LGP encoding option is `streamEvents` is used
     const streamEncoding =
-      "version" in (options ?? {}) ? undefined : options?.encoding ?? undefined;
+      "version" in (options ?? {})
+        ? undefined
+        : (options?.encoding ?? undefined);
     const streamSubgraphs = options?.subgraphs;
     const inputConfig = ensureLangGraphConfig(this.config, options);
     if (
@@ -2087,6 +2089,10 @@ export class Pregel<
     };
 
     config.interrupt ??= (this.userInterrupt as typeof interrupt) ?? interrupt;
+
+    if (config.serverInfo == null) {
+      config.serverInfo = _buildServerInfo(config);
+    }
 
     const callbackManager = await getCallbackManagerForConfig(config);
     const runManager = await callbackManager?.handleChainStart(
@@ -2339,4 +2345,34 @@ export class Pregel<
   async clearCache(): Promise<void> {
     await this.cache?.clear([]);
   }
+}
+
+function _buildServerInfo(
+  config: LangGraphRunnableConfig
+): ServerInfo | undefined {
+  const metadata = config.metadata ?? {};
+  const configurable = config.configurable ?? {};
+  const assistantId = metadata.assistant_id as string | undefined;
+  const graphId = metadata.graph_id as string | undefined;
+
+  const authUserData = configurable.langgraph_auth_user as
+    | Record<string, any>
+    | undefined;
+  let user: Record<string, any> | undefined;
+  if (
+    authUserData != null &&
+    typeof authUserData === "object" &&
+    "identity" in authUserData
+  ) {
+    user = authUserData;
+  }
+
+  if (assistantId != null || graphId != null || user != null) {
+    return {
+      assistantId: assistantId != null ? String(assistantId) : "",
+      graphId: graphId != null ? String(graphId) : "",
+      user,
+    };
+  }
+  return undefined;
 }

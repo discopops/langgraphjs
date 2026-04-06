@@ -26,6 +26,7 @@ import {
   type DefaultToolCall,
 } from "@langchain/langgraph-sdk";
 import { useStreamCustom } from "./stream.custom.js";
+import { createReactiveSubagentAccessors } from "./subagents.js";
 
 export { FetchStreamTransport };
 
@@ -49,7 +50,7 @@ const STREAM_CONTEXT_KEY = Symbol.for("langchain:stream-context");
  * ```
  */
 export function setStreamContext<T extends ReturnType<typeof useStream>>(
-  stream: T,
+  stream: T
 ): T {
   setContext(STREAM_CONTEXT_KEY, stream);
   return stream;
@@ -78,7 +79,7 @@ export function getStreamContext<
   const ctx = getContext(STREAM_CONTEXT_KEY);
   if (!ctx) {
     throw new Error(
-      "getStreamContext must be used within a component that has called setStreamContext",
+      "getStreamContext must be used within a component that has called setStreamContext"
     );
   }
   return ctx as WithClassMessages<ResolveStreamInterface<T, InferBag<T, Bag>>>;
@@ -119,7 +120,7 @@ export function provideStream<
 >(
   options:
     | ResolveStreamOptions<T, InferBag<T, Bag>>
-    | UseStreamCustomOptions<InferStateType<T>, InferBag<T, Bag>>,
+    | UseStreamCustomOptions<InferStateType<T>, InferBag<T, Bag>>
 ): ReturnType<typeof useStream<T, Bag>> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const stream = useStream<T, Bag>(options as any);
@@ -155,7 +156,7 @@ export function getStream<
   if (context == null) {
     throw new Error(
       "getStream() requires a parent component to call provideStream(). " +
-        "Add provideStream({ assistantId: '...' }) in an ancestor component.",
+        "Add provideStream({ assistantId: '...' }) in an ancestor component."
     );
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -168,14 +169,14 @@ export function useStream<
   T = Record<string, unknown>,
   Bag extends BagTemplate = BagTemplate,
 >(
-  options: ResolveStreamOptions<T, InferBag<T, Bag>>,
+  options: ResolveStreamOptions<T, InferBag<T, Bag>>
 ): WithClassMessages<ResolveStreamInterface<T, InferBag<T, Bag>>>;
 
 export function useStream<
   T = Record<string, unknown>,
   Bag extends BagTemplate = BagTemplate,
 >(
-  options: UseStreamCustomOptions<InferStateType<T>, InferBag<T, Bag>>,
+  options: UseStreamCustomOptions<InferStateType<T>, InferBag<T, Bag>>
 ): WithClassMessages<ResolveStreamInterface<T, InferBag<T, Bag>>>;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -206,6 +207,15 @@ function useStreamLGP<
   orchestrator.initThreadId(options.threadId ?? undefined);
 
   const version = writable(0);
+  const reactiveSubagents = createReactiveSubagentAccessors(
+    {
+      getSubagent: (toolCallId) => orchestrator.getSubagent(toolCallId),
+      getSubagentsByType: (type) => orchestrator.getSubagentsByType(type),
+      getSubagentsByMessage: (messageId) =>
+        orchestrator.getSubagentsByMessage(messageId),
+    },
+    version
+  );
   const unsubscribe = orchestrator.subscribe(() => {
     version.update((v) => v + 1);
   });
@@ -275,19 +285,19 @@ function useStreamLGP<
   const historyListStore = derived(version, () => orchestrator.flatHistory);
   const isThreadLoadingStore = derived(
     version,
-    () => orchestrator.isThreadLoading,
+    () => orchestrator.isThreadLoading
   );
   const experimentalBranchTreeStore = derived(
     version,
-    () => orchestrator.experimental_branchTree,
+    () => orchestrator.experimental_branchTree
   );
   const subagentsStore = derived(version, () => {
     orchestrator.trackStreamMode("updates", "messages-tuple");
-    return orchestrator.subagents;
+    return reactiveSubagents.mapSubagents(orchestrator.subagents);
   });
   const activeSubagentsStore = derived(version, () => {
     orchestrator.trackStreamMode("updates", "messages-tuple");
-    return orchestrator.activeSubagents;
+    return reactiveSubagents.mapActiveSubagents(orchestrator.activeSubagents);
   });
   const queueEntriesStore = derived(version, () => orchestrator.queueEntries);
   const queueSizeStore = derived(version, () => orchestrator.queueSize);
@@ -359,7 +369,7 @@ function useStreamLGP<
 
     getMessagesMetadata(
       message: Message,
-      index?: number,
+      index?: number
     ): MessageMetadata<StateType> | undefined {
       return orchestrator.getMessagesMetadata(message, index);
     },
@@ -386,19 +396,24 @@ function useStreamLGP<
     },
 
     get subagents() {
+      orchestrator.trackStreamMode("updates", "messages-tuple");
       return subagentsRef.current;
     },
     get activeSubagents() {
+      orchestrator.trackStreamMode("updates", "messages-tuple");
       return activeSubagentsRef.current;
     },
     getSubagent(toolCallId: string) {
-      return orchestrator.getSubagent(toolCallId);
+      orchestrator.trackStreamMode("updates", "messages-tuple");
+      return reactiveSubagents.getSubagent(toolCallId);
     },
     getSubagentsByType(type: string) {
-      return orchestrator.getSubagentsByType(type);
+      orchestrator.trackStreamMode("updates", "messages-tuple");
+      return reactiveSubagents.getSubagentsByType(type);
     },
     getSubagentsByMessage(messageId: string) {
-      return orchestrator.getSubagentsByMessage(messageId);
+      orchestrator.trackStreamMode("updates", "messages-tuple");
+      return reactiveSubagents.getSubagentsByMessage(messageId);
     },
   };
 }
@@ -456,6 +471,14 @@ export type {
   ToolCallFromTool,
   ToolCallsFromTools,
 } from "@langchain/langgraph-sdk";
+export type {
+  HeadlessToolImplementation,
+  AnyHeadlessToolImplementation,
+  ToolEvent,
+  HeadlessToolInterrupt,
+  OnToolCallback,
+  FlushPendingHeadlessToolInterruptsOptions,
+} from "@langchain/langgraph-sdk";
 
 export {
   SubagentManager,
@@ -464,3 +487,13 @@ export {
   extractParentIdFromNamespace,
   isSubagentNamespace,
 } from "@langchain/langgraph-sdk/ui";
+export {
+  isHeadlessToolInterrupt,
+  parseHeadlessToolInterruptPayload,
+  filterOutHeadlessToolInterrupts,
+  findHeadlessTool,
+  executeHeadlessTool,
+  handleHeadlessToolInterrupt,
+  headlessToolResumeCommand,
+  flushPendingHeadlessToolInterrupts,
+} from "@langchain/langgraph-sdk";

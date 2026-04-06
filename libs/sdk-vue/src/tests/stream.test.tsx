@@ -1,7 +1,7 @@
 import { Client, type Message } from "@langchain/langgraph-sdk";
 import { it, expect, vi, inject } from "vitest";
 import { render } from "vitest-browser-vue";
-import { computed, defineComponent, ref } from "vue";
+import { computed, defineComponent, ref, watchEffect } from "vue";
 import {
   useStream,
   provideStream,
@@ -9,7 +9,10 @@ import {
   type UseStreamTransport,
 } from "../index.js";
 import { useStreamCustom } from "../stream.custom.js";
-import type { DeepAgentGraph } from "./fixtures/mock-server.js";
+import {
+  type DeepAgentGraph,
+  getLocationTool,
+} from "./fixtures/browser-fixtures.js";
 
 const serverUrl = inject("serverUrl");
 expect.setState({ timeout: 30_000 });
@@ -471,7 +474,7 @@ it("onStop is not called when stream completes naturally", async () => {
 
   const TestComponent = defineComponent({
     setup() {
-      const { submit } = useStream({
+      const { submit, isLoading } = useStream({
         assistantId: "agent",
         apiUrl: serverUrl,
         onStop: onStopCallback,
@@ -479,6 +482,9 @@ it("onStop is not called when stream completes naturally", async () => {
 
       return () => (
         <div>
+          <div data-testid="loading">
+            {isLoading.value ? "Loading..." : "Not loading"}
+          </div>
           <button data-testid="submit" onClick={() => void submit({})}>
             Send
           </button>
@@ -490,10 +496,12 @@ it("onStop is not called when stream completes naturally", async () => {
   const screen = render(TestComponent);
 
   await screen.getByTestId("submit").click();
-
-  await new Promise((r) => {
-    setTimeout(r, 1500);
-  });
+  await expect
+    .element(screen.getByTestId("loading"))
+    .toHaveTextContent("Loading...");
+  await expect
+    .element(screen.getByTestId("loading"))
+    .toHaveTextContent("Not loading");
 
   expect(onStopCallback).not.toHaveBeenCalled();
 });
@@ -1200,11 +1208,24 @@ it("branching", async () => {
 });
 
 it("fetchStateHistory: { limit: 2 }", async () => {
+  const onRequestCallback = vi.fn();
+  const client = new Client({
+    apiUrl: serverUrl,
+    onRequest: (url: URL, init: RequestInit) => {
+      onRequestCallback(url.toString(), {
+        ...init,
+        body: init.body ? JSON.parse(init.body as string) : undefined,
+      });
+      return init;
+    },
+  });
+
   const TestComponent = defineComponent({
     setup() {
       const { messages, isLoading, submit } = useStream({
         assistantId: "agent",
         apiUrl: serverUrl,
+        client,
         fetchStateHistory: { limit: 2 },
       });
 
@@ -1236,12 +1257,7 @@ it("fetchStateHistory: { limit: 2 }", async () => {
   });
 
   const screen = render(TestComponent);
-
   await screen.getByTestId("submit").click();
-  await expect
-    .element(screen.getByTestId("loading"))
-    .toHaveTextContent("Loading...");
-
   await expect
     .element(screen.getByTestId("message-0"))
     .toHaveTextContent("Hello");
@@ -1251,6 +1267,24 @@ it("fetchStateHistory: { limit: 2 }", async () => {
   await expect
     .element(screen.getByTestId("loading"))
     .toHaveTextContent("Not loading");
+
+  await expect
+    .poll(
+      () =>
+        onRequestCallback.mock.calls.find(
+          ([url]) => typeof url === "string" && url.includes("/history"),
+        ),
+      { timeout: 10000 },
+    )
+    .toMatchObject([
+      expect.stringMatching(/\/threads\/[^/]+\/history/),
+      {
+        method: "POST",
+        body: {
+          limit: 2,
+        },
+      },
+    ]);
 });
 
 it("onRequest gets called when a request is made", async () => {
@@ -1423,7 +1457,7 @@ it("exposes toolCalls property", async () => {
     setup() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const stream = useStream({
-        assistantId: "agent",
+        assistantId: "headlessToolAgent",
         apiUrl: serverUrl,
       }) as any;
 
@@ -1439,7 +1473,7 @@ it("exposes toolCalls property", async () => {
             data-testid="submit"
             onClick={() =>
               void stream.submit({
-                messages: [{ content: "Hello", type: "human" }],
+                messages: [{ content: "Where am I?", type: "human" }],
               })
             }
           >
@@ -1463,7 +1497,7 @@ it("exposes toolCalls property", async () => {
     .toHaveTextContent("Not loading");
   await expect
     .element(screen.getByTestId("tool-calls-count"))
-    .toHaveTextContent("0");
+    .toHaveTextContent("1");
 });
 
 it("exposes interrupts array", async () => {
@@ -2107,12 +2141,13 @@ it("server-side queue: submitting three times rapidly queues the latter two", as
   await expect
     .element(screen.getByTestId("loading"), { timeout: 5000 })
     .toHaveTextContent("Not loading");
-
-  const count = parseInt(
-    screen.getByTestId("message-count").element().textContent ?? "0",
-    10,
-  );
-  expect(count).toBeGreaterThanOrEqual(2);
+  await expect
+    .poll(() =>
+      Array.from({ length: 8 }, (_, index) =>
+        screen.getByTestId(`message-${index}`).element().textContent?.trim(),
+      ),
+    )
+    .toEqual(["Hi", "Hey", "Msg1", "Hey", "Msg2", "Hey", "Msg3", "Hey"]);
 });
 
 it("server-side queue: queued inputs are displayed in queue.entries", async () => {
@@ -2133,7 +2168,9 @@ it("server-side queue: queued inputs are displayed in queue.entries", async () =
     .toHaveTextContent("2");
 
   const entriesEl = screen.getByTestId("queue-entries");
-  await expect.element(entriesEl, { timeout: 5000 }).toHaveTextContent(/Msg\d/);
+  await expect
+    .element(entriesEl, { timeout: 5000 })
+    .toHaveTextContent("Msg2,Msg3");
 });
 
 it("server-side queue: cancel removes a queued entry", async () => {
@@ -2152,9 +2189,15 @@ it("server-side queue: cancel removes a queued entry", async () => {
   await expect
     .element(screen.getByTestId("queue-size"), { timeout: 5000 })
     .toHaveTextContent("2");
+  await expect
+    .element(screen.getByTestId("queue-entries"))
+    .toHaveTextContent("Msg2,Msg3");
 
   await screen.getByTestId("cancel-first").click();
 
+  await expect
+    .element(screen.getByTestId("queue-entries"), { timeout: 5000 })
+    .toHaveTextContent("Msg3");
   await expect
     .element(screen.getByTestId("queue-size"), { timeout: 10000 })
     .toHaveTextContent("0");
@@ -2162,6 +2205,13 @@ it("server-side queue: cancel removes a queued entry", async () => {
   await expect
     .element(screen.getByTestId("loading"), { timeout: 5000 })
     .toHaveTextContent("Not loading");
+  await expect
+    .poll(() =>
+      Array.from({ length: 6 }, (_, index) =>
+        screen.getByTestId(`message-${index}`).element().textContent?.trim(),
+      ),
+    )
+    .toEqual(["Hi", "Hey", "Msg1", "Hey", "Msg3", "Hey"]);
 });
 
 it("server-side queue: clear empties the queue", async () => {
@@ -2184,12 +2234,22 @@ it("server-side queue: clear empties the queue", async () => {
   await screen.getByTestId("clear-queue").click();
 
   await expect
+    .element(screen.getByTestId("queue-entries"), { timeout: 5000 })
+    .toHaveTextContent("");
+  await expect
     .element(screen.getByTestId("queue-size"), { timeout: 5000 })
     .toHaveTextContent("0");
 
   await expect
     .element(screen.getByTestId("loading"), { timeout: 5000 })
     .toHaveTextContent("Not loading");
+  await expect
+    .poll(() =>
+      Array.from({ length: 4 }, (_, index) =>
+        screen.getByTestId(`message-${index}`).element().textContent?.trim(),
+      ),
+    )
+    .toEqual(["Hi", "Hey", "Msg1", "Hey"]);
 });
 
 it("server-side queue: switchThread clears the queue", async () => {
@@ -2579,6 +2639,295 @@ it("deep agent: subagents call tools and render args/results", async () => {
     .toHaveTextContent(/Both agents completed their tasks/);
 });
 
+it("deep agent: getSubagentsByMessage renders subagents while they are still running", async () => {
+  const observedGroupedStates = new Set<string>();
+
+  const TestComponent = defineComponent({
+    setup() {
+      const thread = useStream<DeepAgentGraph>({
+        assistantId: "deepAgent",
+        apiUrl: serverUrl,
+        filterSubagentMessages: true,
+      });
+
+      return () => {
+        const groupedTurns = thread.messages.value.flatMap((msg, index, messages) => {
+          if (msg.type !== "human") return [];
+
+          const next = messages[index + 1];
+          if (!next || next.type !== "ai" || !next.id) return [];
+
+          const subagents = thread
+            .getSubagentsByMessage(next.id)
+            .slice()
+            .sort((a: any, b: any) =>
+              (a.toolCall?.args?.subagent_type ?? "").localeCompare(
+                b.toolCall?.args?.subagent_type ?? "",
+              ),
+            );
+
+          if (subagents.length === 0) return [];
+
+          return [
+            {
+              humanId: msg.id ?? `human-${index}`,
+              parentAiMessageId: next.id,
+              subagents,
+            },
+          ];
+        });
+
+        if (thread.isLoading.value && groupedTurns.length > 0) {
+          observedGroupedStates.add("rendered-while-loading");
+        }
+
+        for (const turn of groupedTurns) {
+          for (const sub of turn.subagents) {
+            const subType = sub.toolCall?.args?.subagent_type ?? "unknown";
+            const toolStates =
+              sub.toolCalls
+                .map((tc: any) => tc.state)
+                .sort()
+                .join("+") || "no-tool-calls";
+            observedGroupedStates.add(
+              `${subType}:${sub.status}:${toolStates}:${
+                sub.result ? "has-result" : "no-result"
+              }:${thread.isLoading.value ? "loading" : "idle"}`,
+            );
+          }
+        }
+
+        return (
+          <div data-testid="deep-agent-by-message-root">
+            <div data-testid="loading">
+              {thread.isLoading.value ? "Loading..." : "Not loading"}
+            </div>
+            <div data-testid="messages">
+              {thread.messages.value.map((msg, i) => (
+                <div key={msg.id ?? i} data-testid={`message-${i}`}>
+                  {msg.type}:{typeof msg.content === "string"
+                    ? msg.content
+                    : JSON.stringify(msg.content)}
+                </div>
+              ))}
+            </div>
+            {groupedTurns.map((turn, index) => (
+              <div key={turn.parentAiMessageId} data-testid={`turn-${index}`}>
+                <div data-testid={`turn-${index}-subagent-count`}>
+                  {turn.subagents.length}
+                </div>
+                <div data-testid={`turn-${index}-subagent-statuses`}>
+                  {turn.subagents
+                    .map(
+                      (sub: any) =>
+                        `${sub.toolCall?.args?.subagent_type}:${sub.status}`,
+                    )
+                    .join(",")}
+                </div>
+                <div data-testid={`turn-${index}-tool-states`}>
+                  {turn.subagents
+                    .flatMap((sub: any) =>
+                      sub.toolCalls.map(
+                        (tc: any) =>
+                          `${sub.toolCall?.args?.subagent_type}:${tc.call.name}:${tc.state}`,
+                      ),
+                    )
+                    .join(",")}
+                </div>
+              </div>
+            ))}
+            <div data-testid="observed-grouped-states">
+              {[...observedGroupedStates].sort().join(",")}
+            </div>
+            <button
+              data-testid="submit"
+              onClick={() =>
+                void thread.submit(
+                  { messages: [{ content: "Run analysis", type: "human" }] },
+                  { streamSubgraphs: true },
+                )
+              }
+            >
+              Send
+            </button>
+          </div>
+        );
+      };
+    },
+  });
+
+  const screen = render(TestComponent);
+
+  await expect
+    .element(screen.getByTestId("loading"))
+    .toHaveTextContent("Not loading");
+
+  await screen.getByTestId("submit").click();
+
+  await expect
+    .element(screen.getByTestId("turn-0-subagent-count"), { timeout: 30_000 })
+    .toHaveTextContent("2");
+
+  await expect
+    .element(screen.getByTestId("loading"), { timeout: 10_000 })
+    .toHaveTextContent("Not loading");
+
+  await expect
+    .element(screen.getByTestId("turn-0-subagent-statuses"))
+    .toHaveTextContent(/data-analyst:complete/);
+  await expect
+    .element(screen.getByTestId("turn-0-subagent-statuses"))
+    .toHaveTextContent(/researcher:complete/);
+
+  await expect
+    .element(screen.getByTestId("turn-0-tool-states"))
+    .toHaveTextContent(/data-analyst:query_database:completed/);
+  await expect
+    .element(screen.getByTestId("turn-0-tool-states"))
+    .toHaveTextContent(/researcher:search_web:completed/);
+
+  const observedStates = screen.getByTestId("observed-grouped-states");
+  await expect.element(observedStates).toHaveTextContent(/rendered-while-loading/);
+  await expect
+    .element(observedStates)
+    .toHaveTextContent(/data-analyst:running:pending:no-result:loading/);
+  await expect
+    .element(observedStates)
+    .toHaveTextContent(/researcher:running:pending:no-result:loading/);
+});
+
+it("deep agent: retained subagent references stay reactive", async () => {
+  const TestComponent = defineComponent({
+    setup() {
+      const thread = useStream<DeepAgentGraph>({
+        assistantId: "deepAgent",
+        apiUrl: serverUrl,
+        filterSubagentMessages: true,
+      });
+      const retainedSubagent = ref<any>();
+
+      watchEffect(() => {
+        const researcher = thread.getSubagentsByType("researcher")[0];
+        if (researcher && !retainedSubagent.value) {
+          retainedSubagent.value = researcher;
+        }
+      });
+
+      return () => {
+        const subagent = retainedSubagent.value;
+        const status = subagent?.status ?? "missing";
+        const toolCallCount = subagent?.toolCalls.length ?? -1;
+
+        return (
+          <div data-testid="retained-subagent-root">
+            <div data-testid="retained-subagent-status">{status}</div>
+            <div data-testid="retained-subagent-toolcalls">{toolCallCount}</div>
+            <button
+              data-testid="submit"
+              onClick={() =>
+                void thread.submit(
+                  { messages: [{ content: "Run analysis", type: "human" }] },
+                  { streamSubgraphs: true },
+                )
+              }
+            >
+              Send
+            </button>
+          </div>
+        );
+      };
+    },
+  });
+
+  const screen = render(TestComponent);
+
+  await expect
+    .element(screen.getByTestId("retained-subagent-status"))
+    .toHaveTextContent("missing");
+
+  await screen.getByTestId("submit").click();
+
+  await expect
+    .element(screen.getByTestId("retained-subagent-toolcalls"), {
+      timeout: 30_000,
+    })
+    .toHaveTextContent("1");
+  await expect
+    .element(screen.getByTestId("retained-subagent-status"))
+    .toHaveTextContent("complete");
+});
+
+it("deep agent: retained subagent summaries react to latest tool calls", async () => {
+  const TestComponent = defineComponent({
+    setup() {
+      const thread = useStream<DeepAgentGraph>({
+        assistantId: "deepAgent",
+        apiUrl: serverUrl,
+        filterSubagentMessages: true,
+      });
+
+      const summary = computed(() => {
+        const subagent = [...thread.subagents.values()].find(
+          (candidate) =>
+            candidate.toolCall?.args?.subagent_type === "researcher",
+        );
+        const latestToolCall = subagent?.toolCalls.at(-1);
+
+        return {
+          task: subagent?.toolCall?.args?.description ?? "",
+          latestToolName: latestToolCall?.call?.name ?? "",
+          latestToolArgs: JSON.stringify(latestToolCall?.call?.args ?? {}),
+        };
+      });
+
+      return () => (
+        <div data-testid="retained-subagent-summary-root">
+          <div data-testid="retained-subagent-summary-task">
+            {summary.value.task || "missing"}
+          </div>
+          <div data-testid="retained-subagent-summary-tool">
+            {summary.value.latestToolName || "missing"}
+          </div>
+          <div data-testid="retained-subagent-summary-args">
+            {summary.value.latestToolArgs}
+          </div>
+          <button
+            data-testid="submit"
+            onClick={() =>
+              void thread.submit(
+                { messages: [{ content: "Run analysis", type: "human" }] },
+                { streamSubgraphs: true },
+              )
+            }
+          >
+            Send
+          </button>
+        </div>
+      );
+    },
+  });
+
+  const screen = render(TestComponent);
+
+  await expect
+    .element(screen.getByTestId("retained-subagent-summary-tool"))
+    .toHaveTextContent("missing");
+
+  await screen.getByTestId("submit").click();
+
+  await expect
+    .element(screen.getByTestId("retained-subagent-summary-task"), {
+      timeout: 30_000,
+    })
+    .toHaveTextContent("Search the web for test research query");
+  await expect
+    .element(screen.getByTestId("retained-subagent-summary-tool"))
+    .toHaveTextContent("search_web");
+  await expect
+    .element(screen.getByTestId("retained-subagent-summary-args"))
+    .toHaveTextContent('"query":"test research query"');
+});
+
 it("stream.history returns BaseMessage instances", async () => {
   const TestComponent = defineComponent({
     setup() {
@@ -2883,4 +3232,135 @@ it("useStreamContext throws when used outside provideStream", async () => {
     .toHaveTextContent(
       "useStreamContext() requires a parent component to call provideStream()",
     );
+});
+
+function makeHeadlessToolComponent(
+  execute?: (args: unknown) => Promise<unknown>,
+) {
+  return defineComponent({
+    setup() {
+      const toolEvents = ref<{ phase: string; name: string; error?: Error }[]>(
+        [],
+      );
+
+      const tool = getLocationTool.implement(
+        execute ??
+          (async () => ({
+            latitude: 37.7749,
+            longitude: -122.4194,
+          })),
+      );
+
+      const { messages, isLoading, submit } = useStream({
+        assistantId: "headlessToolAgent",
+        apiUrl: serverUrl,
+        tools: [tool],
+        onTool: (event) => {
+          toolEvents.value = [...toolEvents.value, event];
+        },
+      });
+
+      return () => (
+        <div>
+          <div data-testid="messages">
+            {messages.value.map((msg, i: number) => (
+              <div key={msg.id ?? i} data-testid={`message-${i}`}>
+                {typeof msg.content === "string"
+                  ? msg.content
+                  : JSON.stringify(msg.content)}
+              </div>
+            ))}
+            {messages.value.length > 0 && (
+              <div data-testid="message-last">
+                {(() => {
+                  const last = messages.value[messages.value.length - 1];
+                  return typeof last.content === "string"
+                    ? last.content
+                    : JSON.stringify(last.content);
+                })()}
+              </div>
+            )}
+          </div>
+
+          <div data-testid="loading">
+            {isLoading.value ? "loading" : "idle"}
+          </div>
+
+          <div data-testid="tool-events">
+            {toolEvents.value.map((event, i) => (
+              <div key={i} data-testid={`tool-event-${i}`}>
+                {`${event.phase}:${event.name}`}
+                {event.phase === "error" && event.error
+                  ? `:${event.error.message}`
+                  : ""}
+              </div>
+            ))}
+          </div>
+
+          <button
+            data-testid="submit"
+            onClick={() =>
+              void submit({
+                messages: [{ type: "human", content: "Where am I?" }],
+              })
+            }
+          >
+            Send
+          </button>
+        </div>
+      );
+    },
+  });
+}
+
+it("headless tools - executes in browser and resumes agent automatically", async () => {
+  const screen = render(makeHeadlessToolComponent());
+
+  await screen.getByTestId("submit").click();
+
+  await expect.element(screen.getByTestId("loading")).toHaveTextContent("idle");
+
+  await expect
+    .element(screen.getByTestId("message-0"))
+    .toHaveTextContent("Where am I?");
+
+  await expect
+    .element(screen.getByTestId("message-last"))
+    .toHaveTextContent("Location received!");
+});
+
+it("headless tools - onTool callback fires start and success events", async () => {
+  const screen = render(makeHeadlessToolComponent());
+
+  await screen.getByTestId("submit").click();
+
+  await expect.element(screen.getByTestId("loading")).toHaveTextContent("idle");
+
+  await expect
+    .element(screen.getByTestId("tool-event-0"))
+    .toHaveTextContent("start:get_location");
+
+  await expect
+    .element(screen.getByTestId("tool-event-1"))
+    .toHaveTextContent("success:get_location");
+});
+
+it("headless tools - propagates execute error back to agent as error payload", async () => {
+  const failingExecute = async () => {
+    throw new Error("GPS unavailable");
+  };
+
+  const screen = render(makeHeadlessToolComponent(failingExecute));
+
+  await screen.getByTestId("submit").click();
+
+  await expect.element(screen.getByTestId("loading")).toHaveTextContent("idle");
+
+  await expect
+    .element(screen.getByTestId("tool-event-1"))
+    .toHaveTextContent("error:get_location:GPS unavailable");
+
+  await expect
+    .element(screen.getByTestId("message-last"))
+    .toHaveTextContent("Location received!");
 });

@@ -44,6 +44,7 @@ import {
 import { useStreamCustom } from "./stream.custom.js";
 import type { VueReactiveOptions } from "./types.js";
 import { LANGCHAIN_OPTIONS, type LangChainPluginOptions } from "./context.js";
+import { createReactiveSubagentAccessors } from "./subagents.js";
 
 export { FetchStreamTransport };
 export type { VueReactiveOptions } from "./types.js";
@@ -83,7 +84,7 @@ function useStreamLGP<
       getClient: () => client.value,
       getAssistantId: () => toValue(options.assistantId),
       getMessagesKey: () => toValue(options.messagesKey) ?? "messages",
-    },
+    }
   );
 
   const initialThreadId = toValue(options.threadId) ?? undefined;
@@ -95,7 +96,7 @@ function useStreamLGP<
       const resolved = newId ?? undefined;
       orchestrator.setThreadId(resolved);
     },
-    { flush: "sync" },
+    { flush: "sync" }
   );
 
   // Monotonically increasing counter bumped on every orchestrator update.
@@ -103,13 +104,28 @@ function useStreamLGP<
   // solely to register a reactive dependency, so Vue knows to invalidate
   // their cached values when the orchestrator state changes.
   const version = shallowRef(0);
-  const subagentsRef = shallowRef(orchestrator.subagents);
-  const activeSubagentsRef = shallowRef(orchestrator.activeSubagents);
+  const reactiveSubagents = createReactiveSubagentAccessors(
+    {
+      getSubagent: (toolCallId) => orchestrator.getSubagent(toolCallId),
+      getSubagentsByType: (type) => orchestrator.getSubagentsByType(type),
+      getSubagentsByMessage: (messageId) =>
+        orchestrator.getSubagentsByMessage(messageId),
+    },
+    version
+  );
+  const subagentsRef = shallowRef(
+    reactiveSubagents.mapSubagents(orchestrator.subagents)
+  );
+  const activeSubagentsRef = shallowRef(
+    reactiveSubagents.mapActiveSubagents(orchestrator.activeSubagents)
+  );
 
   const unsubscribe = orchestrator.subscribe(() => {
     version.value += 1;
-    subagentsRef.value = orchestrator.subagents;
-    activeSubagentsRef.value = orchestrator.activeSubagents;
+    subagentsRef.value = reactiveSubagents.mapSubagents(orchestrator.subagents);
+    activeSubagentsRef.value = reactiveSubagents.mapActiveSubagents(
+      orchestrator.activeSubagents
+    );
   });
 
   onScopeDispose(() => {
@@ -139,7 +155,7 @@ function useStreamLGP<
         }
       }
     },
-    { immediate: true },
+    { immediate: true }
   );
 
   // Queue draining
@@ -151,7 +167,7 @@ function useStreamLGP<
     }),
     () => {
       orchestrator.drainQueue();
-    },
+    }
   );
 
   // Auto-reconnect
@@ -170,7 +186,7 @@ function useStreamLGP<
       if (shouldReconnect) {
         orchestrator.tryReconnect();
       }
-    },
+    }
   );
 
   // Cached computed properties derived from the orchestrator.
@@ -207,7 +223,7 @@ function useStreamLGP<
     (newBranch) => {
       if (branch.value !== newBranch) branch.value = newBranch;
     },
-    { immediate: true },
+    { immediate: true }
   );
 
   const messages = computed(() => {
@@ -289,7 +305,7 @@ function useStreamLGP<
 
     getMessagesMetadata: (
       message: Message,
-      index?: number,
+      index?: number
     ): MessageMetadata<StateType> | undefined => {
       return orchestrator.getMessagesMetadata(message, index);
     },
@@ -312,19 +328,29 @@ function useStreamLGP<
     },
 
     get subagents() {
-      return subagentsRef.value;
+      void messages.value.length;
+      void version.value;
+      return reactiveSubagents.mapSubagents(orchestrator.subagents);
     },
     get activeSubagents() {
-      return activeSubagentsRef.value;
+      void messages.value.length;
+      void version.value;
+      return reactiveSubagents.mapActiveSubagents(orchestrator.activeSubagents);
     },
     getSubagent(toolCallId: string) {
-      return orchestrator.getSubagent(toolCallId);
+      void messages.value.length;
+      void version.value;
+      return reactiveSubagents.getSubagent(toolCallId);
     },
     getSubagentsByType(type: string) {
-      return orchestrator.getSubagentsByType(type);
+      void messages.value.length;
+      void version.value;
+      return reactiveSubagents.getSubagentsByType(type);
     },
     getSubagentsByMessage(messageId: string) {
-      return orchestrator.getSubagentsByMessage(messageId);
+      void messages.value.length;
+      void version.value;
+      return reactiveSubagents.getSubagentsByMessage(messageId);
     },
   };
 }
@@ -342,7 +368,7 @@ type WithClassMessages<T> = {
     : K extends "getMessagesMetadata"
       ? (
           message: BaseMessage,
-          index?: number,
+          index?: number
         ) => MessageMetadata<Record<string, unknown>> | undefined
       : K extends "toolCalls"
         ? T[K] extends (infer TC)[]
@@ -380,14 +406,14 @@ type WithClassMessages<T> = {
                   : K extends "submit"
                     ? T[K] extends (
                         values: infer V,
-                        options?: infer O,
+                        options?: infer O
                       ) => infer Ret
                       ? (
                           values:
                             | AcceptBaseMessages<Exclude<V, null | undefined>>
                             | null
                             | undefined,
-                          options?: O,
+                          options?: O
                         ) => Ret
                       : T[K]
                     : K extends "history"
@@ -399,23 +425,23 @@ type WithClassMessages<T> = {
   ? {
       getSubagent: T extends {
         getSubagent: (
-          id: string,
+          id: string
         ) => SubagentStreamInterface<infer S, infer TC, infer N> | undefined;
       }
         ? (
-            toolCallId: string,
+            toolCallId: string
           ) => ClassSubagentStreamInterface<S, TC, N> | undefined
         : never;
       getSubagentsByType: T extends {
         getSubagentsByType: (
-          type: string,
+          type: string
         ) => SubagentStreamInterface<infer S, infer TC, infer N>[];
       }
         ? (type: string) => ClassSubagentStreamInterface<S, TC, N>[]
         : never;
       getSubagentsByMessage: T extends {
         getSubagentsByMessage: (
-          id: string,
+          id: string
         ) => SubagentStreamInterface<infer S, infer TC, infer N>[];
       }
         ? (messageId: string) => ClassSubagentStreamInterface<S, TC, N>[]
@@ -427,7 +453,7 @@ export function useStream<
   T = Record<string, unknown>,
   Bag extends BagTemplate = BagTemplate,
 >(
-  options: VueReactiveOptions<ResolveStreamOptions<T, InferBag<T, Bag>>>,
+  options: VueReactiveOptions<ResolveStreamOptions<T, InferBag<T, Bag>>>
 ): WithClassMessages<ResolveStreamInterface<T, InferBag<T, Bag>>>;
 
 export function useStream<
@@ -436,7 +462,7 @@ export function useStream<
 >(
   options: VueReactiveOptions<
     UseStreamCustomOptions<InferStateType<T>, InferBag<T, Bag>>
-  >,
+  >
 ): WithClassMessages<ResolveStreamInterface<T, InferBag<T, Bag>>>;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -502,6 +528,14 @@ export type {
   ToolCallFromTool,
   ToolCallsFromTools,
 } from "@langchain/langgraph-sdk";
+export type {
+  HeadlessToolImplementation,
+  AnyHeadlessToolImplementation,
+  ToolEvent,
+  HeadlessToolInterrupt,
+  OnToolCallback,
+  FlushPendingHeadlessToolInterruptsOptions,
+} from "@langchain/langgraph-sdk";
 
 export {
   SubagentManager,
@@ -510,3 +544,13 @@ export {
   extractParentIdFromNamespace,
   isSubagentNamespace,
 } from "@langchain/langgraph-sdk/ui";
+export {
+  isHeadlessToolInterrupt,
+  parseHeadlessToolInterruptPayload,
+  filterOutHeadlessToolInterrupts,
+  findHeadlessTool,
+  executeHeadlessTool,
+  handleHeadlessToolInterrupt,
+  headlessToolResumeCommand,
+  flushPendingHeadlessToolInterrupts,
+} from "@langchain/langgraph-sdk";

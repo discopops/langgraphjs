@@ -1,5 +1,45 @@
 # @langchain/langgraph-sdk
 
+## 1.8.8
+
+### Patch Changes
+
+- [#2292](https://github.com/langchain-ai/langgraphjs/pull/2292) [`33293c7`](https://github.com/langchain-ai/langgraphjs/commit/33293c7f3f110bb462d77a2f8671e5b9d0e84b63) Thanks [@christian-bromann](https://github.com/christian-bromann)! - fix(sdk): buffer subagent messages instead of dropping them
+
+## 1.8.7
+
+### Patch Changes
+
+- [#2285](https://github.com/langchain-ai/langgraphjs/pull/2285) [`a5dfdb6`](https://github.com/langchain-ai/langgraphjs/commit/a5dfdb61c7af0b957b0064b02cb390a11cd59b56) Thanks [@christian-bromann](https://github.com/christian-bromann)! - fix(sdk): detect interrupt for Python agents
+
+## 1.8.6
+
+### Patch Changes
+
+- [`b4a841c`](https://github.com/langchain-ai/langgraphjs/commit/b4a841c4b369db7f0fa93fe1de6b3b1ac3e8d3fb) Thanks [@christian-bromann](https://github.com/christian-bromann)! - fix(sdk): bump all packages
+
+## 1.8.5
+
+### Patch Changes
+
+- [#2279](https://github.com/langchain-ai/langgraphjs/pull/2279) [`3bbb3ff`](https://github.com/langchain-ai/langgraphjs/commit/3bbb3ff65aa3c1de96c7d751c14dc9ee11e3b095) Thanks [@christian-bromann](https://github.com/christian-bromann)! - fix(sdk): better type inferrence
+
+- [#2278](https://github.com/langchain-ai/langgraphjs/pull/2278) [`0d04099`](https://github.com/langchain-ai/langgraphjs/commit/0d04099958dcca0a1ed053e6a41cc2c12bab78f5) Thanks [@christian-bromann](https://github.com/christian-bromann)! - fix(vue): Make subagents accessible once they are spun up
+
+## 1.8.4
+
+### Patch Changes
+
+- [#2263](https://github.com/langchain-ai/langgraphjs/pull/2263) [`936b48b`](https://github.com/langchain-ai/langgraphjs/commit/936b48b2807687d3fa5dd7aa480ebcc2ad3ffccf) Thanks [@christian-bromann](https://github.com/christian-bromann)! - Restore deprecated snake_case aliases on human-in-the-loop interrupt payloads
+  while preserving the newer camelCase fields so older apps can migrate to
+  `@langchain/react` without breaking interrupt handling.
+
+## 1.8.3
+
+### Patch Changes
+
+- [#2204](https://github.com/langchain-ai/langgraphjs/pull/2204) [`d9d807e`](https://github.com/langchain-ai/langgraphjs/commit/d9d807ebb0398a43a07412fb034a65fc598c0731) Thanks [@brydar](https://github.com/brydar)! - fix(sdk): accumulate parallel interrupts in StreamManager
+
 ## 1.8.2
 
 ### Patch Changes

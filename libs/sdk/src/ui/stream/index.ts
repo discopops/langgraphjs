@@ -75,16 +75,16 @@ type IsReactAgent<T> = T extends { "~agentTypes": AgentTypeConfigLike }
 export type InferStateType<T> = T extends { "~agentTypes": unknown }
   ? InferAgentState<T>
   : T extends { "~RunOutput": infer S }
-  ? S extends Record<string, unknown>
-    ? S
-    : Record<string, unknown>
-  : T extends { "~OutputType": infer O }
-  ? O extends Record<string, unknown>
-    ? O
-    : Record<string, unknown>
-  : T extends Record<string, unknown>
-  ? T
-  : Record<string, unknown>;
+    ? S extends Record<string, unknown>
+      ? S
+      : Record<string, unknown>
+    : T extends { "~OutputType": infer O }
+      ? O extends Record<string, unknown>
+        ? O
+        : Record<string, unknown>
+      : T extends Record<string, unknown>
+        ? T
+        : Record<string, unknown>;
 
 /**
  * Infer the node names from a compiled graph.
@@ -174,7 +174,6 @@ export type InferSubagentStates<T> = T extends { "~deepAgentTypes": unknown }
  *
  * @template T - The agent or graph type (use `typeof agent` or `typeof graph`)
  * @template Bag - Type configuration bag for interrupts, configurable, etc.
- *
  * @example
  * ```typescript
  * // Automatic detection based on agent type
@@ -188,23 +187,17 @@ export type InferSubagentStates<T> = T extends { "~deepAgentTypes": unknown }
  * // → UseDeepAgentStream (has toolCalls AND subagents)
  * ```
  */
-export type ResolveStreamInterface<
-  T,
-  Bag extends BagTemplate = BagTemplate
-> = IsDeepAgent<T> extends true
-  ? UseDeepAgentStream<
-      InferStateType<T>,
-      InferToolCalls<T>,
-      InferSubagentStates<T>,
-      Bag
-    >
-  : IsReactAgent<T> extends true
-  ? UseAgentStream<InferStateType<T>, InferToolCalls<T>, Bag>
-  : BaseStream<InferStateType<T>, InferToolCalls<T>, Bag>;
-
-// ============================================================================
-// Options Interface Resolution
-// ============================================================================
+export type ResolveStreamInterface<T, Bag extends BagTemplate = BagTemplate> =
+  IsDeepAgent<T> extends true
+    ? UseDeepAgentStream<
+        InferStateType<T>,
+        InferToolCalls<T>,
+        InferSubagentStates<T>,
+        Bag
+      >
+    : IsReactAgent<T> extends true
+      ? UseAgentStream<InferStateType<T>, InferToolCalls<T>, Bag>
+      : BaseStream<InferStateType<T>, InferToolCalls<T>, Bag>;
 
 /**
  * Resolves the appropriate options interface based on the agent/graph type.
@@ -232,14 +225,12 @@ export type ResolveStreamInterface<
  * // AgentOptions.filterSubagentMessages does NOT exist
  * ```
  */
-export type ResolveStreamOptions<
-  T,
-  Bag extends BagTemplate = BagTemplate
-> = IsDeepAgent<T> extends true
-  ? UseDeepAgentStreamOptions<InferStateType<T>, Bag>
-  : IsReactAgent<T> extends true
-  ? UseAgentStreamOptions<InferStateType<T>, Bag>
-  : UseStreamOptions<InferStateType<T>, Bag>;
+export type ResolveStreamOptions<T, Bag extends BagTemplate = BagTemplate> =
+  IsDeepAgent<T> extends true
+    ? UseDeepAgentStreamOptions<InferStateType<T>, Bag>
+    : IsReactAgent<T> extends true
+      ? UseAgentStreamOptions<InferStateType<T>, Bag>
+      : UseStreamOptions<InferStateType<T>, Bag>;
 
 // ============================================================================
 // Convenience Type Aliases

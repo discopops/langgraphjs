@@ -1121,6 +1121,12 @@ export function runPregelTests(
         config: {
           tags: [],
           configurable: expect.any(Object),
+          executionInfo: expect.objectContaining({
+            checkpointId: expect.any(String),
+            checkpointNs: expect.any(String),
+            taskId: expect.any(String),
+            nodeAttempt: 1,
+          }),
           metadata: expect.objectContaining({
             langgraph_node: "node1",
             langgraph_step: -1,
@@ -1130,6 +1136,9 @@ export function runPregelTests(
           runId: undefined,
           runName: "node1",
         },
+        cache_key: undefined,
+        retry_policy: undefined,
+        subgraphs: undefined,
         id: expect.any(String),
         path: [PUSH, 0],
         writers: expect.any(Array),
@@ -1143,6 +1152,12 @@ export function runPregelTests(
         config: {
           tags: [],
           configurable: expect.any(Object),
+          executionInfo: expect.objectContaining({
+            checkpointId: expect.any(String),
+            checkpointNs: expect.any(String),
+            taskId: expect.any(String),
+            nodeAttempt: 1,
+          }),
           metadata: expect.objectContaining({
             langgraph_node: "node1",
             langgraph_step: -1,
@@ -1152,6 +1167,9 @@ export function runPregelTests(
           runId: undefined,
           runName: "node1",
         },
+        cache_key: undefined,
+        retry_policy: undefined,
+        subgraphs: undefined,
         id: expect.any(String),
         path: [PULL, "node1"],
         writers: expect.any(Array),
@@ -1165,6 +1183,12 @@ export function runPregelTests(
         config: {
           tags: [],
           configurable: expect.any(Object),
+          executionInfo: expect.objectContaining({
+            checkpointId: expect.any(String),
+            checkpointNs: expect.any(String),
+            taskId: expect.any(String),
+            nodeAttempt: 1,
+          }),
           metadata: expect.objectContaining({
             langgraph_node: "node2",
             langgraph_step: -1,
@@ -1174,6 +1198,9 @@ export function runPregelTests(
           runId: undefined,
           runName: "node2",
         },
+        cache_key: undefined,
+        retry_policy: undefined,
+        subgraphs: undefined,
         id: expect.any(String),
         path: [PULL, "node2"],
         writers: expect.any(Array),
@@ -9161,7 +9188,7 @@ graph TD;
       graph.stream({ messages: [] }, { ...config, streamMode: "messages" })
     );
 
-    expect(streamedEvents).toEqual([
+    expect(streamedEvents).toMatchObject([
       [
         new _AnyIdToolMessage({
           tool_call_id: "test",
@@ -9226,7 +9253,7 @@ graph TD;
           langgraph_checkpoint_ns: expect.stringMatching(/^p_two:.*\|c_two:.*/),
           __pregel_task_id: expect.any(String),
           checkpoint_ns: expect.stringMatching(/^p_two:/),
-          ls_integration: "langgraph",
+          ls_integration: "langchain_chat_model",
           ls_model_type: "chat",
           ls_provider: "FakeChatModel",
           ls_stop: undefined,
@@ -9247,7 +9274,7 @@ graph TD;
           langgraph_checkpoint_ns: expect.stringMatching(/^p_two:.*\|c_two:.*/),
           __pregel_task_id: expect.any(String),
           checkpoint_ns: expect.stringMatching(/^p_two:/),
-          ls_integration: "langgraph",
+          ls_integration: "langchain_chat_model",
           ls_model_type: "chat",
           ls_provider: "FakeChatModel",
           ls_stop: undefined,
@@ -9268,7 +9295,7 @@ graph TD;
           langgraph_checkpoint_ns: expect.stringMatching(/^p_three/),
           __pregel_task_id: expect.any(String),
           checkpoint_ns: expect.stringMatching(/^p_three/),
-          ls_integration: "langgraph",
+          ls_integration: "langchain_chat_model",
           ls_model_type: "chat",
           ls_provider: "FakeChatModel",
           ls_stop: undefined,
@@ -9383,7 +9410,7 @@ graph TD;
               expect.stringMatching(/^p_two:.*\|c_two:.*/),
             __pregel_task_id: expect.any(String),
             checkpoint_ns: expect.stringMatching(/^p_two:/),
-            ls_integration: "langgraph",
+            ls_integration: "langchain_chat_model",
             ls_model_type: "chat",
             ls_provider: "FakeChatModel",
             ls_stop: undefined,
@@ -9405,7 +9432,7 @@ graph TD;
               expect.stringMatching(/^p_two:.*\|c_two:.*/),
             __pregel_task_id: expect.any(String),
             checkpoint_ns: expect.stringMatching(/^p_two:/),
-            ls_integration: "langgraph",
+            ls_integration: "langchain_chat_model",
             ls_model_type: "chat",
             ls_provider: "FakeChatModel",
             ls_stop: undefined,
@@ -9425,7 +9452,7 @@ graph TD;
             langgraph_checkpoint_ns: expect.stringMatching(/^p_three/),
             __pregel_task_id: expect.any(String),
             checkpoint_ns: expect.stringMatching(/^p_three/),
-            ls_integration: "langgraph",
+            ls_integration: "langchain_chat_model",
             ls_model_type: "chat",
             ls_provider: "FakeChatModel",
             ls_stop: undefined,

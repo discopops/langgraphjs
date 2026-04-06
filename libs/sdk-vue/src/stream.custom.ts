@@ -19,6 +19,7 @@ import {
 } from "@langchain/langgraph-sdk/ui";
 import type { BagTemplate, Message, Interrupt } from "@langchain/langgraph-sdk";
 import type { VueReactiveOptions } from "./types.js";
+import { createReactiveSubagentAccessors } from "./subagents.js";
 
 export function useStreamCustom<
   StateType extends Record<string, unknown> = Record<string, unknown>,
@@ -29,7 +30,7 @@ export function useStreamCustom<
   type ConfigurableType = GetConfigurableType<Bag>;
 
   const orchestrator = new CustomStreamOrchestrator<StateType, Bag>(
-    options as unknown as AnyStreamCustomOptions<StateType, Bag>,
+    options as unknown as AnyStreamCustomOptions<StateType, Bag>
   );
 
   const branch = ref<string>("");
@@ -45,21 +46,38 @@ export function useStreamCustom<
         orchestrator.syncThreadId(resolved);
       }
     },
-    { flush: "sync" },
+    { flush: "sync" }
   );
 
   const streamValues = shallowRef<StateType | null>(null);
   const streamError = shallowRef<unknown>(undefined);
   const isLoading = shallowRef(false);
-  const subagentsRef = shallowRef(orchestrator.subagents);
-  const activeSubagentsRef = shallowRef(orchestrator.activeSubagents);
+  const version = shallowRef(0);
+  const reactiveSubagents = createReactiveSubagentAccessors(
+    {
+      getSubagent: (toolCallId) => orchestrator.getSubagent(toolCallId),
+      getSubagentsByType: (type) => orchestrator.getSubagentsByType(type),
+      getSubagentsByMessage: (messageId) =>
+        orchestrator.getSubagentsByMessage(messageId),
+    },
+    version
+  );
+  const subagentsRef = shallowRef(
+    reactiveSubagents.mapSubagents(orchestrator.subagents)
+  );
+  const activeSubagentsRef = shallowRef(
+    reactiveSubagents.mapActiveSubagents(orchestrator.activeSubagents)
+  );
 
   const unsubscribe = orchestrator.subscribe(() => {
+    version.value += 1;
     streamValues.value = orchestrator.streamValues;
     streamError.value = orchestrator.error;
     isLoading.value = orchestrator.isLoading;
-    subagentsRef.value = orchestrator.subagents;
-    activeSubagentsRef.value = orchestrator.activeSubagents;
+    subagentsRef.value = reactiveSubagents.mapSubagents(orchestrator.subagents);
+    activeSubagentsRef.value = reactiveSubagents.mapActiveSubagents(
+      orchestrator.activeSubagents
+    );
   });
 
   onScopeDispose(() => {
@@ -81,7 +99,7 @@ export function useStreamCustom<
         orchestrator.reconstructSubagentsIfNeeded();
       }
     },
-    { immediate: true },
+    { immediate: true }
   );
 
   // Cached computed properties — unlike plain getters, `computed()` only
@@ -129,7 +147,7 @@ export function useStreamCustom<
 
     submit: async (
       values: UpdateType | null | undefined,
-      submitOptions?: CustomSubmitOptions<StateType, ConfigurableType>,
+      submitOptions?: CustomSubmitOptions<StateType, ConfigurableType>
     ) => {
       await orchestrator.submit(values, submitOptions);
     },
@@ -146,7 +164,7 @@ export function useStreamCustom<
 
     getMessagesMetadata(
       message: Message,
-      index?: number,
+      index?: number
     ): MessageMetadata<StateType> | undefined {
       return orchestrator.getMessagesMetadata(message, index);
     },
@@ -176,21 +194,31 @@ export function useStreamCustom<
     },
 
     get subagents() {
-      return subagentsRef.value;
+      void messagesComputed.value.length;
+      void version.value;
+      return reactiveSubagents.mapSubagents(orchestrator.subagents);
     },
 
     get activeSubagents() {
-      return activeSubagentsRef.value;
+      void messagesComputed.value.length;
+      void version.value;
+      return reactiveSubagents.mapActiveSubagents(orchestrator.activeSubagents);
     },
 
     getSubagent(toolCallId: string) {
-      return orchestrator.getSubagent(toolCallId);
+      void messagesComputed.value.length;
+      void version.value;
+      return reactiveSubagents.getSubagent(toolCallId);
     },
     getSubagentsByType(type: string) {
-      return orchestrator.getSubagentsByType(type);
+      void messagesComputed.value.length;
+      void version.value;
+      return reactiveSubagents.getSubagentsByType(type);
     },
     getSubagentsByMessage(messageId: string) {
-      return orchestrator.getSubagentsByMessage(messageId);
+      void messagesComputed.value.length;
+      void version.value;
+      return reactiveSubagents.getSubagentsByMessage(messageId);
     },
   };
 }

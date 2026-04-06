@@ -10,6 +10,7 @@ import {
   type MessageMetadata,
 } from "@langchain/langgraph-sdk/ui";
 import type { BagTemplate, Message, Interrupt } from "@langchain/langgraph-sdk";
+import { createReactiveSubagentAccessors } from "./subagents.js";
 
 export function useStreamCustom<
   StateType extends Record<string, unknown> = Record<string, unknown>,
@@ -22,6 +23,15 @@ export function useStreamCustom<
 
   const version = writable(0);
   const branch = writable<string>("");
+  const reactiveSubagents = createReactiveSubagentAccessors(
+    {
+      getSubagent: (toolCallId) => orchestrator.getSubagent(toolCallId),
+      getSubagentsByType: (type) => orchestrator.getSubagentsByType(type),
+      getSubagentsByMessage: (messageId) =>
+        orchestrator.getSubagentsByMessage(messageId),
+    },
+    version
+  );
 
   const unsubscribe = orchestrator.subscribe(() => {
     version.update((v) => v + 1);
@@ -40,18 +50,19 @@ export function useStreamCustom<
 
   const interruptStore = derived(
     version,
-    () => orchestrator.interrupt as Interrupt<InterruptType> | undefined,
+    () => orchestrator.interrupt as Interrupt<InterruptType> | undefined
   );
 
   const interruptsStore = derived(
     version,
-    () => orchestrator.interrupts as Interrupt<InterruptType>[],
+    () => orchestrator.interrupts as Interrupt<InterruptType>[]
   );
 
-  const subagentsStore = derived(version, () => orchestrator.subagents);
-  const activeSubagentsStore = derived(
-    version,
-    () => orchestrator.activeSubagents,
+  const subagentsStore = derived(version, () =>
+    reactiveSubagents.mapSubagents(orchestrator.subagents)
+  );
+  const activeSubagentsStore = derived(version, () =>
+    reactiveSubagents.mapActiveSubagents(orchestrator.activeSubagents)
   );
 
   const emptyEntries = writable<never[]>([]);
@@ -60,7 +71,7 @@ export function useStreamCustom<
   const valuesRef = fromStore(valuesStore);
   const errorRef = fromStore(derived(version, () => orchestrator.error));
   const isLoadingRef = fromStore(
-    derived(version, () => orchestrator.isLoading),
+    derived(version, () => orchestrator.isLoading)
   );
   const branchRef = fromStore(branch);
   const messagesRef = fromStore(messagesStore);
@@ -87,7 +98,7 @@ export function useStreamCustom<
 
     async submit(
       values: UpdateType | null | undefined,
-      submitOptions?: CustomSubmitOptions<StateType, ConfigurableType>,
+      submitOptions?: CustomSubmitOptions<StateType, ConfigurableType>
     ) {
       await orchestrator.submit(values, submitOptions);
     },
@@ -106,7 +117,7 @@ export function useStreamCustom<
 
     getMessagesMetadata(
       message: Message,
-      index?: number,
+      index?: number
     ): MessageMetadata<StateType> | undefined {
       return orchestrator.getMessagesMetadata(message, index);
     },
@@ -142,19 +153,24 @@ export function useStreamCustom<
     },
 
     get subagents() {
+      orchestrator.trackStreamMode("updates", "messages-tuple");
       return subagentsRef.current;
     },
     get activeSubagents() {
+      orchestrator.trackStreamMode("updates", "messages-tuple");
       return activeSubagentsRef.current;
     },
     getSubagent(toolCallId: string) {
-      return orchestrator.getSubagent(toolCallId);
+      orchestrator.trackStreamMode("updates", "messages-tuple");
+      return reactiveSubagents.getSubagent(toolCallId);
     },
     getSubagentsByType(type: string) {
-      return orchestrator.getSubagentsByType(type);
+      orchestrator.trackStreamMode("updates", "messages-tuple");
+      return reactiveSubagents.getSubagentsByType(type);
     },
     getSubagentsByMessage(messageId: string) {
-      return orchestrator.getSubagentsByMessage(messageId);
+      orchestrator.trackStreamMode("updates", "messages-tuple");
+      return reactiveSubagents.getSubagentsByMessage(messageId);
     },
   };
 }
