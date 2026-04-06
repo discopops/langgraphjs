@@ -902,7 +902,7 @@ export class StreamManager<
           ) {
             const interruptData = data as Partial<StateType>;
             this.setStreamValues(
-              (prev) => ({ ...prev, ...interruptData } as StateType)
+              (prev) => ({ ...prev, ...interruptData } as unknown as StateType)
             );
           } else {
             this.setStreamValues(data as StateType);
