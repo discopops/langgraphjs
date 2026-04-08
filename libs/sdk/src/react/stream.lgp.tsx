@@ -165,6 +165,36 @@ function useThreadHistory<StateType extends Record<string, unknown>>(
   };
 }
 
+function getStreamManagerCallbacks<
+  StateType extends Record<string, unknown>,
+  Bag extends BagTemplate
+>(
+  options: AnyStreamOptions<StateType, Bag>,
+  handleToolEvent: (
+    data: ToolsStreamEvent["data"],
+    opts: {
+      namespace: string[] | undefined;
+      mutate: (
+        update: Partial<StateType> | ((prev: StateType) => Partial<StateType>)
+      ) => void;
+    }
+  ) => void
+) {
+  return {
+    onUpdateEvent: options.onUpdateEvent,
+    onCustomEvent: options.onCustomEvent,
+    onMetadataEvent: options.onMetadataEvent,
+    onLangChainEvent: options.onLangChainEvent,
+    onDebugEvent: options.onDebugEvent,
+    onCheckpointEvent: options.onCheckpointEvent,
+    onTaskEvent: options.onTaskEvent,
+    onToolEvent: (data, opts) => {
+      handleToolEvent(data, opts);
+      options.onToolEvent?.(data, opts);
+    },
+  };
+}
+
 export function useStreamLGP<
   StateType extends Record<string, unknown> = Record<string, unknown>,
   Bag extends BagTemplate = BagTemplate
@@ -611,13 +641,7 @@ export function useStreamLGP<
         setMessages,
 
         initialValues: historyValues,
-        callbacks: {
-          ...options,
-          onToolEvent: (data, opts) => {
-            handleToolEvent(data);
-            options.onToolEvent?.(data, opts);
-          },
-        },
+        callbacks: getStreamManagerCallbacks(options, handleToolEvent),
 
         async onSuccess() {
           if (rejoinKey) runMetadataStorage?.removeItem(rejoinKey);
@@ -703,13 +727,7 @@ export function useStreamLGP<
         setMessages,
 
         initialValues: historyValues,
-        callbacks: {
-          ...options,
-          onToolEvent: (data, opts) => {
-            handleToolEvent(data);
-            options.onToolEvent?.(data, opts);
-          },
-        },
+        callbacks: getStreamManagerCallbacks(options, handleToolEvent),
         async onSuccess() {
           runMetadataStorage?.removeItem(`lg:stream:${threadId}`);
           if (!shouldRefetchJoin) {
