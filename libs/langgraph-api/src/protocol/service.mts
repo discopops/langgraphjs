@@ -447,7 +447,7 @@ export class ProtocolService {
     return {
       type: "success",
       id: command.id,
-      result: { runId: run.run_id } satisfies RunResult,
+      result: { run_id: run.run_id } satisfies RunResult,
       meta: {
         sessionId: record.sessionId,
         appliedThroughSeq: record.seq,
@@ -465,11 +465,11 @@ export class ProtocolService {
         >)
       : {};
 
-    if (typeof params.interruptId !== "string") {
+    if (typeof params.interrupt_id !== "string") {
       return this.error(
         command.id,
         "invalid_argument",
-        "input.respond requires an interruptId."
+        "input.respond requires an interrupt_id."
       );
     }
 
@@ -498,7 +498,7 @@ export class ProtocolService {
     }
 
     await this.createOrResumeRun(record, {
-      input: { [params.interruptId]: params.response },
+      input: { [params.interrupt_id]: params.response },
       config: undefined,
       metadata: undefined,
     });

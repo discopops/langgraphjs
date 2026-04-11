@@ -41,7 +41,7 @@ describe("ProtocolStreamRuntime", () => {
       async *[Symbol.asyncIterator]() {},
     });
 
-    inputMock.mockResolvedValue({ runId: "run-1" });
+    inputMock.mockResolvedValue({ run_id: "run-1" });
     openMock.mockResolvedValue({
       subscribe: subscribeMock,
       run: { input: inputMock },
@@ -77,7 +77,7 @@ describe("ProtocolStreamRuntime", () => {
     expect(openMock).toHaveBeenCalledTimes(1);
     expect(openMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        protocolVersion: "0.3.0",
+        protocol_version: "0.3.0",
         config: {
           configurable: {
             user_id: "user-1",
@@ -112,6 +112,7 @@ describe("ProtocolStreamRuntime", () => {
             }),
           ]),
         },
+        preferred_transports: ["v2-sse"],
       }),
     );
 

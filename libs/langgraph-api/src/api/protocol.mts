@@ -15,12 +15,12 @@ const SessionIdSchema = z.object({ session_id: z.string() });
 const ProtocolSessionOpenSchema = z.object({
   method: z.literal("session.open"),
   params: z.object({
-    protocolVersion: z.string(),
+    protocol_version: z.string(),
     target: z.object({
       id: z.string(),
     }),
-    preferredTransports: z.array(z.string()).optional(),
-    mediaTransferModes: z.array(z.string()).optional(),
+    preferred_transports: z.array(z.string()).optional(),
+    media_transfer_modes: z.array(z.string()).optional(),
   }),
 });
 
