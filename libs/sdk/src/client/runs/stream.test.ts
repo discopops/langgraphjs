@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
-import { Client } from "../client.js";
+import { Client } from "../../client.js";
 
 const textEncoder = new TextEncoder();
 

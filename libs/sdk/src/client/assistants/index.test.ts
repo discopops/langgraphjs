@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { Client } from "../client.js";
-import { overrideFetchImplementation } from "../singletons/fetch.js";
+import { Client } from "../../client.js";
+import { overrideFetchImplementation } from "../../singletons/fetch.js";
 
 function assistantPayload() {
   return {

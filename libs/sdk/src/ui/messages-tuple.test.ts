@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { MessageTupleManager, toMessageDict } from "../ui/messages.js";
+import { MessageTupleManager, toMessageDict } from "./messages.js";
 import { AIMessage, Message } from "../types.messages.js";
 
 const CHUNKS = [

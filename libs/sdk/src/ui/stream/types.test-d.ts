@@ -1,14 +1,14 @@
 import { describe, test, expectTypeOf } from "vitest";
 import type { BaseMessage } from "@langchain/core/messages";
-import type { Message } from "../types.messages.js";
-import type { ThreadState } from "../schema.js";
-import type { BagTemplate } from "../types.template.js";
-import type { BaseStream, ResolveStreamInterface } from "../ui/stream/index.js";
+import type { Message } from "../../types.messages.js";
+import type { ThreadState } from "../../schema.js";
+import type { BagTemplate } from "../../types.template.js";
+import type { BaseStream, ResolveStreamInterface } from "./index.js";
 import type {
   SubmitOptions,
   CustomSubmitOptions,
   RunCallbackMeta,
-} from "../ui/types.js";
+} from "../types.js";
 
 describe("ResolveStreamInterface resolves plain state types to BaseStream", () => {
   test("plain state type resolves to BaseStream", () => {

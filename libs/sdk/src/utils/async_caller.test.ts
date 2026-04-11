@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { AsyncCaller } from "../async_caller.js";
+import { AsyncCaller } from "./async_caller.js";
 
 describe("AsyncCaller", () => {
   afterEach(() => {

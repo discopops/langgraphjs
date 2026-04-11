@@ -1,7 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { Readable } from "node:stream";
-import { IterableReadableStream } from "../utils/stream.js";
-import { BytesLineDecoder, SSEDecoder } from "../utils/sse.js";
+import { IterableReadableStream } from "./stream.js";
+import { BytesLineDecoder, SSEDecoder } from "./sse.js";
 
 const gather = async <T>(stream: ReadableStream<T>): Promise<T[]> => {
   const results: T[] = [];

@@ -3,7 +3,7 @@ import {
   ProtocolSseTransportAdapter,
   type ProtocolRequestHook,
   ProtocolWebSocketTransportAdapter,
-} from "@langchain/client";
+} from "@langchain/langgraph-sdk/client";
 import type { CapabilityAdvertisement, Channel } from "@langchain/protocol";
 import type {
   Client,

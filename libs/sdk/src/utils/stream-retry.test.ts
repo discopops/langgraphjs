@@ -1,6 +1,6 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
-import { streamWithRetry, MaxReconnectAttemptsError } from "../utils/stream.js";
-import { BytesLineDecoder, SSEDecoder } from "../utils/sse.js";
+import { streamWithRetry, MaxReconnectAttemptsError } from "./stream.js";
+import { BytesLineDecoder, SSEDecoder } from "./sse.js";
 
 const textEncoder = new TextEncoder();
 

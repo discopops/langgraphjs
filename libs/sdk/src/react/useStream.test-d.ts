@@ -15,7 +15,7 @@ import { createAgent, tool, createMiddleware } from "langchain";
 import { HumanMessage } from "@langchain/core/messages";
 import { createDeepAgent } from "deepagents";
 
-import { useStream } from "../react/index.js";
+import { useStream } from "./index.js";
 
 // Mocked LangGraph StateGraph types (see fixtures/langgraph-mocks.ts for details)
 import {
@@ -24,7 +24,7 @@ import {
   MessagesValue,
   START,
   END,
-} from "./fixtures/langgraph-mocks.js";
+} from "../tests/fixtures/langgraph-mocks.js";
 import type { Message } from "../types.messages.js";
 import type { BagTemplate } from "../types.template.js";
 import type {
