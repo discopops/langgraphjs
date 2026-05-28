@@ -41,7 +41,7 @@ describe("ProtocolStreamRuntime", () => {
       async *[Symbol.asyncIterator]() {},
     });
 
-    inputMock.mockResolvedValue({ runId: "run-1" });
+    inputMock.mockResolvedValue({ run_id: "run-1" });
     openMock.mockResolvedValue({
       subscribe: subscribeMock,
       run: { input: inputMock },
@@ -77,7 +77,11 @@ describe("ProtocolStreamRuntime", () => {
     expect(openMock).toHaveBeenCalledTimes(1);
     expect(openMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        protocolVersion: "0.3.0",
+        protocol_version: "0.3.0",
+        preferred_transports: ["sse-http"],
+        target: {
+          id: "agent",
+        },
         config: {
           configurable: {
             user_id: "user-1",
@@ -87,12 +91,21 @@ describe("ProtocolStreamRuntime", () => {
         capabilities: {
           modules: expect.arrayContaining([
             expect.objectContaining({
+              name: "session",
+              commands: ["open", "describe", "close"],
+            }),
+            expect.objectContaining({
               name: "subscription",
               commands: ["subscribe", "unsubscribe", "reconnect"],
             }),
             expect.objectContaining({
               name: "run",
               commands: ["input"],
+            }),
+            expect.objectContaining({
+              name: "input",
+              commands: ["respond"],
+              channels: ["input"],
             }),
             expect.objectContaining({
               name: "agent",
@@ -116,7 +129,7 @@ describe("ProtocolStreamRuntime", () => {
     );
 
     expect(subscribeMock).toHaveBeenCalledWith({
-      channels: ["lifecycle", "messages", "tools", "values"],
+      channels: ["lifecycle", "input", "messages", "tools", "values"],
     });
 
     expect(inputMock).toHaveBeenCalledWith({
