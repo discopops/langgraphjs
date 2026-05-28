@@ -3,14 +3,16 @@
 > Build stateful, agentic applications with LangGraph and LangSmith
 
 LangGraph is a low-level orchestration framework and runtime for building long-running, stateful agents with durable execution, streaming, human-in-the-loop control, and graph-based workflows.
+LangGraph v1 is available, and the current docs pages reflect the v1 route structure.
 
 ## Start Here
 
-- [LangGraph overview](https://docs.langchain.com/oss/javascript/langgraph)
+- [LangGraph overview](https://docs.langchain.com/oss/javascript/langgraph/overview)
 - [Install LangGraph](https://docs.langchain.com/oss/javascript/langgraph/install)
 - [Quickstart](https://docs.langchain.com/oss/javascript/langgraph/quickstart)
 - [Choosing between Graph and Functional APIs](https://docs.langchain.com/oss/javascript/langgraph/choosing-apis)
 - [Workflows and agents](https://docs.langchain.com/oss/javascript/langgraph/workflows-agents)
+- [What's new in LangGraph v1](https://docs.langchain.com/oss/javascript/releases/langgraph-v1)
 
 ## Core Graph Concepts
 
