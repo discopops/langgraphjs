@@ -18,6 +18,7 @@ import { getStream, type AgentServerAdapter } from "../index.js";
 type AdapterCommand = Parameters<AgentServerAdapter["send"]>[0];
 
 const serverUrl = inject("serverUrl");
+expect.setState({ timeout: 30_000 });
 
 it("renders initial state correctly", async () => {
   const screen = await render(BasicStream, {

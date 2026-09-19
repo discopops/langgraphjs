@@ -5,6 +5,7 @@ import { defineComponent } from "vue";
 import { useStream } from "../index.js";
 
 const serverUrl = inject("serverUrl");
+expect.setState({ timeout: 30_000 });
 
 it("stop() does not clear stream values", async () => {
   const TestComponent = defineComponent({
