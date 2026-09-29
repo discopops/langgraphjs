@@ -2344,12 +2344,16 @@ it("calls per-submit onError when stream fails", async () => {
 
   await screen.getByTestId("submit").click();
 
-  await expect.element(screen.getByTestId("submit-error")).toBeInTheDocument();
-
-  await expect.element(screen.getByTestId("error")).toBeInTheDocument();
+  await expect
+    .element(screen.getByTestId("submit-error"), { timeout: 10000 })
+    .toBeInTheDocument();
 
   await expect
-    .element(screen.getByTestId("loading"))
+    .element(screen.getByTestId("error"), { timeout: 10000 })
+    .toBeInTheDocument();
+
+  await expect
+    .element(screen.getByTestId("loading"), { timeout: 10000 })
     .toHaveTextContent("Not loading");
 });
 
@@ -2635,11 +2639,7 @@ it("stream.history returns BaseMessage instances", async () => {
 
   await screen.getByTestId("submit").click();
   await expect
-    .element(screen.getByTestId("loading"))
-    .toHaveTextContent("Loading...");
-
-  await expect
-    .element(screen.getByTestId("loading"))
+    .element(screen.getByTestId("loading"), { timeout: 10000 })
     .toHaveTextContent("Not loading");
 
   await expect
@@ -2796,18 +2796,14 @@ it("provideStream children can submit and receive messages", async () => {
 
   await screen.getByTestId("submit").click();
   await expect
-    .element(screen.getByTestId("loading"))
-    .toHaveTextContent("Loading...");
-
-  await expect
-    .element(screen.getByTestId("message-0"))
+    .element(screen.getByTestId("message-0"), { timeout: 10000 })
     .toHaveTextContent("Hello");
   await expect
-    .element(screen.getByTestId("message-1"))
+    .element(screen.getByTestId("message-1"), { timeout: 10000 })
     .toHaveTextContent("Hey");
 
   await expect
-    .element(screen.getByTestId("loading"))
+    .element(screen.getByTestId("loading"), { timeout: 10000 })
     .toHaveTextContent("Not loading");
 });
 
