@@ -1,5 +1,149 @@
 # @langchain/langgraph-sdk
 
+## 1.12.0
+
+### Minor Changes
+
+- [#2848](https://github.com/langchain-ai/langgraphjs/pull/2848) [`7a12289`](https://github.com/langchain-ai/langgraphjs/commit/7a12289df4ed6441171ec393da4ccfccd98d69e8) Thanks [@thushanth-bengre-langchain](https://github.com/thushanth-bengre-langchain)! - `useStream`'s `"enqueue"` multitask strategy can now be backed by real, durable server-side runs instead of an in-memory client-only queue.
+  
+  Pass `queue: "server"` to opt in; it defaults to `"local"`, so existing usage is unaffected. `"server"` requires the backend behind `apiUrl` to implement the Runs REST endpoints (`POST`/`GET /threads/{thread_id}/runs`, `POST /threads/{thread_id}/runs/{run_id}/cancel`), not just streaming/commands. Queued submissions then persist across reloads and are visible to other sessions, and `cancelQueued`/`clearQueue` cancel them server-side too.
+  
+  Not supported with a custom `AgentServerAdapter` transport — `queue` only applies to the built-in transport.
+
+## 1.12.0-rc.0
+
+### Minor Changes
+
+- [#2848](https://github.com/langchain-ai/langgraphjs/pull/2848) [`7a12289`](https://github.com/langchain-ai/langgraphjs/commit/7a12289df4ed6441171ec393da4ccfccd98d69e8) Thanks [@thushanth-bengre-langchain](https://github.com/thushanth-bengre-langchain)! - `useStream`'s `"enqueue"` multitask strategy can now be backed by real, durable server-side runs instead of an in-memory client-only queue.
+  
+  Pass `queue: "server"` to opt in; it defaults to `"local"`, so existing usage is unaffected. `"server"` requires the backend behind `apiUrl` to implement the Runs REST endpoints (`POST`/`GET /threads/{thread_id}/runs`, `POST /threads/{thread_id}/runs/{run_id}/cancel`), not just streaming/commands. Queued submissions then persist across reloads and are visible to other sessions, and `cancelQueued`/`clearQueue` cancel them server-side too.
+  
+  Not supported with a custom `AgentServerAdapter` transport — `queue` only applies to the built-in transport.
+
+## 1.11.2
+
+### Patch Changes
+
+- [#2855](https://github.com/langchain-ai/langgraphjs/pull/2855) [`0284323`](https://github.com/langchain-ai/langgraphjs/commit/0284323b2d8457bd830ea987e93f03ebee8370ce) Thanks [@hntrl](https://github.com/hntrl)! - Preserve metadata from v2 message SSE events when constructing frontend message objects, so applications can inspect message provenance and model completion details without parsing raw events.
+  
+  - Retain namespace, graph node, callback `run_id`, and message-start metadata in `additional_kwargs`, including messages returned by awaiting a `StreamingMessage`.
+  - Expose finish reasons and provider response metadata in `response_metadata` across message roles, accepting both Python `metadata` and JavaScript `responseMetadata` event fields.
+  - Populate the standard AI `usage_metadata` field while retaining `additional_kwargs.usage` for compatibility. Preserve earlier usage when a finish event omits it.
+  - Keep interleaved streams at the same namespace and node separate using callback `run_id`, while retaining fallback behavior for legacy events without run IDs.
+  
+  These fields describe individual messages and model calls: a finish reason does not identify the final response of a graph turn, and callback run IDs are not necessarily server run IDs. This change does not add an `is_final` marker or persist stream-only metadata into historical checkpoints.
+
+## 1.11.1
+
+### Patch Changes
+
+- [#2824](https://github.com/langchain-ai/langgraphjs/pull/2824) [`e75f6a0`](https://github.com/langchain-ai/langgraphjs/commit/e75f6a08e96f65d201a0bb501a97e00bcffe83a2) Thanks [@eliornl](https://github.com/eliornl)! - feat(langgraph): add `responseSchema` option to `interrupt()`
+  
+  `interrupt(value, { responseSchema })` lets a graph declare the shape of the
+  value it expects on resume. A Zod schema validates the resume value and the
+  parsed result is what `interrupt()` returns; a raw JSON Schema object is passed
+  through as-is. The schema is surfaced on `Interrupt.response_schema` so clients
+  such as Studio can render a typed form instead of a free-form JSON editor.
+  Omitting the option keeps today's behavior.
+
+## 1.11.0
+
+### Minor Changes
+
+- [#2831](https://github.com/langchain-ai/langgraphjs/pull/2831) [`3234c69`](https://github.com/langchain-ai/langgraphjs/commit/3234c69530416e2709bf54c53472e640864e7de4) Thanks [@ramon-langchain](https://github.com/ramon-langchain)! - Expose connection lifecycle callbacks for built-in streaming transports.
+  
+  `onConnected` runs after the initial SSE or WebSocket connection becomes usable and after every successful reconnect. Its payload distinguishes an `initial` connection from a `reconnected` connection and includes the reconnect attempt number.
+  
+  `onReconnect` now also receives the scheduled `delayMs`, allowing applications to display accurate retry state before the next connection attempt. React, Vue, Svelte, and Angular stream hooks forward both callbacks.
+
+### Patch Changes
+
+- [#2831](https://github.com/langchain-ai/langgraphjs/pull/2831) [`3234c69`](https://github.com/langchain-ai/langgraphjs/commit/3234c69530416e2709bf54c53472e640864e7de4) Thanks [@ramon-langchain](https://github.com/ramon-langchain)! - Recover cleanly when a thread's root event stream terminates unexpectedly.
+  
+  If the stream fails or closes while a run is active, the controller now records the transport error and clears `isLoading` rather than leaving the UI in a permanently running state. Once the failed pump settles, a later submission can start a fresh root subscription without recreating the thread stream or replaying the failed command.
+
+- [#2809](https://github.com/langchain-ai/langgraphjs/pull/2809) [`11a4535`](https://github.com/langchain-ai/langgraphjs/commit/11a4535762b04f8f28cc98eb7b1e4b682b69e91a) Thanks [@hntrl](https://github.com/hntrl)! - fix(sdk): appropriately track persisted seq for stream replay
+  
+  Sequences weren't being appropriately attributed when rehydrating the page (e.g. on refresh). This meant we'd lose stream information on `useStream` on reloads. This has been fixed by adding a lookup step to determine what the most appropriate sequence index is to track in the event stream.:x
+
+- [#2762](https://github.com/langchain-ai/langgraphjs/pull/2762) [`2fab6fd`](https://github.com/langchain-ai/langgraphjs/commit/2fab6fda74714cd792fed24e5416cec66fdbc105) Thanks [@JessYanCoding](https://github.com/JessYanCoding)! - Send `checkpoint_id` in the `runs.stream()` request body, so a `checkpointId` passed to `client.runs.stream()` forks from the requested checkpoint instead of being silently dropped. Matches `runs.create()` and `runs.wait()`, which already send it.
+
+- [#2813](https://github.com/langchain-ai/langgraphjs/pull/2813) [`4fc118f`](https://github.com/langchain-ai/langgraphjs/commit/4fc118fcde8fd6d977c03c8a0a7071912df1873a) Thanks [@eliornl](https://github.com/eliornl)! - fix(sdk): show interrupts raised after a passive thread rejoin
+  
+  After a page refresh mid-run, `useStream` filtered every interrupt it did not
+  already know from the hydrated thread state as replayed history, and waited
+  for a `checkpoints` event to lift that filter. Current runtimes never emit
+  that event and the replay buffer trims it on long runs, so interrupts raised
+  after the refresh never appeared until the next reload. Unknown interrupts are
+  now settled against the server's thread state when the run reaches a terminal
+  lifecycle: the ones the server lists as pending are shown, the rest are
+  dropped as history.
+
+- [#2812](https://github.com/langchain-ai/langgraphjs/pull/2812) [`db4bdad`](https://github.com/langchain-ai/langgraphjs/commit/db4bdad61ddfc6c1113269b131ac2efde3eecf69) Thanks [@eliornl](https://github.com/eliornl)! - fix(sdk): recover from a server-side thread stream drop instead of freezing
+  
+  The protocol SSE transport now reconnects when the server closes the event
+  stream cleanly. The thread stream is open-ended, so a clean close only happens
+  when the server's own upstream consumer died or it is restarting; before, the
+  client treated it as the end of the thread and the UI froze mid-run with no
+  error. A connection that delivered events also resets the reconnect budget, so
+  long-lived pages survive repeated deploys. `maxReconnectAttempts: 0` keeps the
+  old end-on-close behavior.
+  
+  Unsolicited server error frames (no command id) and a shared stream that gives
+  up reconnecting now reach `stream.error`: `ThreadStream.onError` exposes them,
+  `useStream` sets `error`, clears `isLoading`, and settles the in-flight
+  `submit()` as failed.
+
+- [#2808](https://github.com/langchain-ai/langgraphjs/pull/2808) [`55fa26b`](https://github.com/langchain-ai/langgraphjs/commit/55fa26be9290fbd89a6e0acb232f04cbc6dedb22) Thanks [@hntrl](https://github.com/hntrl)! - fix(sdk): coalesce locally resolved interrupts
+  
+  when resolving interrupts using `useStream`, there was a case where we prioritized the remote state values (which we lookup in React Strict mode on every page transition) over the local interrupt responses we know we've responded with.
+  
+  This has since been fixed to first prioritize the local cache of interrupts, resolved against the remote state values when a run hits a terminal event
+
+## 1.10.3-rc.2
+
+### Patch Changes
+
+- [#2813](https://github.com/langchain-ai/langgraphjs/pull/2813) [`4fc118f`](https://github.com/langchain-ai/langgraphjs/commit/4fc118fcde8fd6d977c03c8a0a7071912df1873a) Thanks [@eliornl](https://github.com/eliornl)! - fix(sdk): show interrupts raised after a passive thread rejoin
+  
+  After a page refresh mid-run, `useStream` filtered every interrupt it did not
+  already know from the hydrated thread state as replayed history, and waited
+  for a `checkpoints` event to lift that filter. Current runtimes never emit
+  that event and the replay buffer trims it on long runs, so interrupts raised
+  after the refresh never appeared until the next reload. Unknown interrupts are
+  now settled against the server's thread state when the run reaches a terminal
+  lifecycle: the ones the server lists as pending are shown, the rest are
+  dropped as history.
+
+- [#2812](https://github.com/langchain-ai/langgraphjs/pull/2812) [`db4bdad`](https://github.com/langchain-ai/langgraphjs/commit/db4bdad61ddfc6c1113269b131ac2efde3eecf69) Thanks [@eliornl](https://github.com/eliornl)! - fix(sdk): recover from a server-side thread stream drop instead of freezing
+  
+  The protocol SSE transport now reconnects when the server closes the event
+  stream cleanly. The thread stream is open-ended, so a clean close only happens
+  when the server's own upstream consumer died or it is restarting; before, the
+  client treated it as the end of the thread and the UI froze mid-run with no
+  error. A connection that delivered events also resets the reconnect budget, so
+  long-lived pages survive repeated deploys. `maxReconnectAttempts: 0` keeps the
+  old end-on-close behavior.
+  
+  Unsolicited server error frames (no command id) and a shared stream that gives
+  up reconnecting now reach `stream.error`: `ThreadStream.onError` exposes them,
+  `useStream` sets `error`, clears `isLoading`, and settles the in-flight
+  `submit()` as failed.
+
+## 1.10.3-rc.1
+
+### Patch Changes
+
+- [#2809](https://github.com/langchain-ai/langgraphjs/pull/2809) [`11a4535`](https://github.com/langchain-ai/langgraphjs/commit/11a4535762b04f8f28cc98eb7b1e4b682b69e91a) Thanks [@hntrl](https://github.com/hntrl)! - fix(sdk): appropriately track persisted seq for stream replay
+  
+  Sequences weren't being appropriately attributed when rehydrating the page (e.g. on refresh). This meant we'd lose stream information on `useStream` on reloads. This has been fixed by adding a lookup step to determine what the most appropriate sequence index is to track in the event stream.:x
+
+- [#2808](https://github.com/langchain-ai/langgraphjs/pull/2808) [`55fa26b`](https://github.com/langchain-ai/langgraphjs/commit/55fa26be9290fbd89a6e0acb232f04cbc6dedb22) Thanks [@hntrl](https://github.com/hntrl)! - fix(sdk): coalesce locally resolved interrupts
+  
+  when resolving interrupts using `useStream`, there was a case where we prioritized the remote state values (which we lookup in React Strict mode on every page transition) over the local interrupt responses we know we've responded with.
+  
+  This has since been fixed to first prioritize the local cache of interrupts, resolved against the remote state values when a run hits a terminal event
+
 ## 1.10.3-rc.0
 
 ### Patch Changes

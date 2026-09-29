@@ -454,7 +454,22 @@ export function useStream<
     maxReconnectAttempts?: number;
     streamIdleReconnect?: number | "auto";
     reconnectDelayMs?: (attempt: number) => number;
-    onReconnect?: (options: { attempt: number; cause: unknown }) => void;
+    onReconnect?: (options: {
+      attempt: number;
+      cause: unknown;
+      delayMs: number;
+    }) => void;
+    onConnected?: (options: {
+      kind: "initial" | "reconnected";
+      attempt: number;
+    }) => void | Promise<void>;
+    /**
+     * Back `"enqueue"` with real, durable server-side runs instead of an
+     * in-memory client-only queue. Defaults to `"local"`. `"server"`
+     * requires the backend behind `apiUrl` to implement the Runs REST
+     * endpoints, not just the streaming/commands protocol.
+     */
+    queue?: "local" | "server";
     onThreadId?: (threadId: string) => void;
     onCreated?: (info: RunExecutionInfo) => void;
     onCompleted?: (info: RunCompletedInfo) => void;
@@ -516,6 +531,8 @@ export function useStream<
       : asBag.streamIdleReconnect,
     reconnectDelayMs: hasCustomAdapter ? undefined : asBag.reconnectDelayMs,
     onReconnect: hasCustomAdapter ? undefined : asBag.onReconnect,
+    onConnected: hasCustomAdapter ? undefined : asBag.onConnected,
+    queue: hasCustomAdapter ? undefined : asBag.queue,
     onThreadId: options.onThreadId,
     onCreated: options.onCreated,
     onCompleted: options.onCompleted,

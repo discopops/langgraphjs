@@ -1,5 +1,48 @@
 # @langchain/langgraph-api
 
+## 1.5.2-dev.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @langchain/langgraph-ui@1.5.2-dev.0
+
+## 1.5.1
+
+### Patch Changes
+
+- [#2883](https://github.com/langchain-ai/langgraphjs/pull/2883) [`545c7d1`](https://github.com/langchain-ai/langgraphjs/commit/545c7d189883a01c8723f3ed782d347732c00b60) Thanks [@casparb](https://github.com/casparb)! - Fix `langgraph dev --no-reload` with the default TypeScript loader. Pass the tsx `--clear-screen=false` option only in watch mode so Node can start the server when reload is disabled.
+- Updated dependencies []:
+  - @langchain/langgraph-ui@1.5.1
+
+## 1.5.1-rc.0
+
+### Patch Changes
+
+- Updated dependencies [[`7a12289`](https://github.com/langchain-ai/langgraphjs/commit/7a12289df4ed6441171ec393da4ccfccd98d69e8)]:
+  - @langchain/langgraph-sdk@1.12.0-rc.0
+  - @langchain/langgraph@1.4.18-rc.0
+  - @langchain/langgraph-ui@1.5.1-rc.0
+
+## 1.5.0
+
+### Minor Changes
+
+- [#2850](https://github.com/langchain-ai/langgraphjs/pull/2850) [`48245a8`](https://github.com/langchain-ai/langgraphjs/commit/48245a84c5348ea09780d85c41b6e5a09bb318df) Thanks [@casparb](https://github.com/casparb)! - Pass a typed `ServerRuntime` as the second graph factory argument. Runs and resumes receive `executionRuntime.context`; assistant inspection and thread state operations receive `executionRuntime: null`. Existing config-only factories remain supported.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @langchain/langgraph-ui@1.5.0
+
+## 1.4.6
+
+### Patch Changes
+
+- [#2751](https://github.com/langchain-ai/langgraphjs/pull/2751) [`0a9611a`](https://github.com/langchain-ai/langgraphjs/commit/0a9611af927bd7933e6eb96161acd86584f0d4b0) Thanks [@t3s7r](https://github.com/t3s7r)! - fix(api): `run.start` with input on a cancelled thread no longer folds the input into `Command(resume)`. A cancelled run shares the "interrupted" status with a genuine `interrupt()` pause, but has no pending interrupt to consume the resume value, so the submitted message was silently dropped. The input-vs-resume decision now keys on whether the thread actually has pending interrupts (both in the protocol service and the embed protocol).
+- Updated dependencies []:
+  - @langchain/langgraph-ui@1.4.6
+
 ## 1.4.6-rc.0
 
 ### Patch Changes
