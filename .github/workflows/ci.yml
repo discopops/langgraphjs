@@ -89,6 +89,11 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Verify build artifacts
+        run: |
+          test -f libs/langgraph-cli/dist/cli/cli.mjs
+          test -f libs/langgraph-ui/dist/cli.mjs
+
       - name: Create build archive
         run: tar -czf build-artifacts.tar.gz libs/*/dist libs/*/.turbo .turbo 2>/dev/null || tar -czf build-artifacts.tar.gz libs/*/dist
 

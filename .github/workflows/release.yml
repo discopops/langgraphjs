@@ -45,6 +45,11 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Verify build artifacts
+        run: |
+          test -f libs/langgraph-cli/dist/cli/cli.mjs
+          test -f libs/langgraph-ui/dist/cli.mjs
+
       - name: Create Release Pull Request or Publish to npm
         id: changesets
         uses: changesets/action@6a0a831ff30acef54f2c6aa1cbbc1096b066edaf # v1
